@@ -121,7 +121,7 @@ Reported after `python main.py --data_dir data/raw --mode all --epochs 50 --nois
 | Classical LSTM | Bearing1_5 | 0.2219 | 0.2892 | `train_classical` / `evaluate` |
 | Hybrid QML | Bearing1_5 | 0.1986 | 0.2548 | `noise_level=0.0` |
 
-For the four **publication-style** comparison figures (metrics table, RUL overlay, MAE/RMSE bars, hybrid noise panel), run all cells in `notebooks/05_results_comparison.ipynb` after `main.py` has produced `results/metrics.json` and the `*_predictions_Bearing1_5.npz` files, or regenerate the notebook source with `python scripts/build_05_notebook.py` and execute it.
+For the four comparison figures (metrics table, RUL overlay, MAE/RMSE bars, hybrid noise panel), run all cells in `notebooks/05_results_comparison.ipynb` after `main.py` has produced `results/metrics.json` and the `*_predictions_Bearing1_5.npz` files, or regenerate the notebook source with `python scripts/build_05_notebook.py` and execute it.
 
 **Figure inventory**
 
