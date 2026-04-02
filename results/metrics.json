@@ -1,0 +1,21 @@
+{
+  "hybrid_model": {
+    "Bearing1_5_noise_0.0": {
+      "mae": 0.1985611915588379,
+      "rmse": 0.2548285722732544,
+      "noise_level": 0.0,
+      "bearing_name": "Bearing1_5",
+      "n_samples": 3318,
+      "predictions_npz": "results/hybrid_predictions_Bearing1_5.npz"
+    }
+  },
+  "classical_model": {
+    "Bearing1_5": {
+      "mae": 0.2218853086233139,
+      "rmse": 0.2891664206981659,
+      "bearing_name": "Bearing1_5",
+      "noise_level": 0.0,
+      "predictions_npz": "results/classical_predictions_Bearing1_5.npz"
+    }
+  }
+}
