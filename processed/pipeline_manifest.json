@@ -1,0 +1,39 @@
+{
+  "bearings": {
+    "Bearing1_1": {
+      "n_samples": 4030464,
+      "columns": [
+        "horizontal_acc",
+        "vertical_acc"
+      ]
+    },
+    "Bearing1_2": {
+      "n_samples": 5275648,
+      "columns": [
+        "horizontal_acc",
+        "vertical_acc"
+      ]
+    },
+    "Bearing1_3": {
+      "n_samples": 5177344,
+      "columns": [
+        "horizontal_acc",
+        "vertical_acc"
+      ]
+    },
+    "Bearing1_4": {
+      "n_samples": 3997696,
+      "columns": [
+        "horizontal_acc",
+        "vertical_acc"
+      ]
+    },
+    "Bearing1_5": {
+      "n_samples": 1703936,
+      "columns": [
+        "horizontal_acc",
+        "vertical_acc"
+      ]
+    }
+  }
+}
