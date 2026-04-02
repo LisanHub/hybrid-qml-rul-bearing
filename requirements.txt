@@ -1,0 +1,21 @@
+# Python 3.10 (tested ~2024). Pinned for reproducibility.
+# Third-party imports traced from src/*.py and notebooks/*.ipynb (stdlib excluded).
+#
+# Optional GPU: after creating the venv, install PyTorch for your CUDA version from
+# https://pytorch.org/get-started/locally/ (this file pins CPU-safe wheels from PyPI).
+
+numpy==1.26.4
+pandas==2.2.3
+scipy==1.13.1
+scikit-learn==1.5.2
+joblib==1.4.2
+matplotlib==3.9.2
+plotly==5.24.1
+torch==2.3.1
+pennylane==0.39.0
+
+# Notebooks (05_results_comparison, 01_eda, etc.)
+ipython==8.28.0
+ipykernel==6.29.5
+jupyterlab==4.2.5
+tqdm==4.66.5

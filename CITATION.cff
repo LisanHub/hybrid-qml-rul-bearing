@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+title: Hybrid quantum-classical RUL prediction for rolling bearings (XJTU-SY)
+message: >-
+  If you use this software, please cite it using the metadata from this file
+  or the BibTeX block in README.md.
+type: software
+license: MIT
+repository-code: "https://github.com/LisanHub/hybrid-qml-rul-bearing"
+authors:
+  - family-names: Lisan
+    given-names: Zadid Al
+    email: "lisan15-5426@diu.edu.bd"
+abstract: >-
+  Pipeline for remaining useful life (RUL) estimation on XJTU-SY bearing data
+  using an LSTM baseline and a hybrid variational quantum circuit model
+  (PennyLane + PyTorch).
+keywords:
+  - remaining useful life
+  - bearings
+  - quantum machine learning
+  - LSTM
+  - PennyLane
+  - XJTU-SY
