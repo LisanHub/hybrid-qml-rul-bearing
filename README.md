@@ -1,199 +1,297 @@
-# Hybrid quantum–classical RUL prediction for rolling bearings
+<div align="center">
 
-![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+<img src="https://img.shields.io/badge/Python-3.10-3776AB?style=for-the-badge&logo=python&logoColor=white"/>
+<img src="https://img.shields.io/badge/PennyLane-QML-6929C4?style=for-the-badge&logoColor=white"/>
+<img src="https://img.shields.io/badge/PyTorch-EE4C2C?style=for-the-badge&logo=pytorch&logoColor=white"/>
+<img src="https://img.shields.io/badge/License-MIT-22C55E?style=for-the-badge"/>
+<img src="https://img.shields.io/badge/B.Sc.%20Thesis-DIU%202026-0369A1?style=for-the-badge"/>
+
+<br/><br/>
+
+# Hybrid Quantum–Classical RUL Prediction<br/>for Rolling Bearings
+
+**Zadid Al Lisan** · Daffodil International University · Supervised by **Dr. Md Alamgir Kabir**
+
+*Reproducibility code for the B.Sc. thesis:*  
+**"Hybrid Quantum-Classical Regression Model for Remaining Useful-Life Prediction of Rolling Bearings"**
+
 [![CI](https://github.com/LisanHub/hybrid-qml-rul-bearing/actions/workflows/ci.yml/badge.svg)](https://github.com/LisanHub/hybrid-qml-rul-bearing/actions/workflows/ci.yml)
-[![Thesis](https://img.shields.io/badge/B.Sc.%20thesis-Daffodil%20International%20University-0366d6.svg)](https://github.com/LisanHub)
+[![XJTU-SY Dataset](https://img.shields.io/badge/Dataset-XJTU--SY-orange?style=flat-square)](https://biaowang.tech/xjtu-sy-bearing-datasets/)
+[![GitHub](https://img.shields.io/badge/GitHub-LisanHub-181717?style=flat-square&logo=github)](https://github.com/LisanHub)
 
-Reproducibility code for the B.Sc. thesis **“Hybrid Quantum-Classical Regression Model for Remaining Useful-Life Prediction of Rolling Bearings”** (**Zadid Al Lisan**, Daffodil International University, supervised by **Dr. Md Alamgir Kabir**). The pipeline uses the **XJTU-SY** bearing data, a classical **LSTM** baseline and a **hybrid VQC + PyTorch** model, plus notebooks for EDA and publication-style comparisons.
-
----
-
-## Abstract
-
-Accurate **remaining useful life (RUL)** estimates for rolling element bearings reduce unplanned downtime and improve condition-based maintenance. This repository implements a **hybrid quantum-classical regressor** in which **windowed vibration features** feed a small **fully connected encoder**, a **PennyLane variational quantum circuit** (angle embedding, strongly entangling layers, Pauli-Z readouts), and a **classical decoder**, trained end-to-end alongside a **two-layer LSTM** baseline. Both heads predict **linearly normalized RUL** in **[0, 1]** from run-to-failure records. The workflow includes **depolarizing noise** on the quantum device for robustness studies.
+</div>
 
 ---
 
-## Architecture (conceptual)
+## Overview
 
-```mermaid
-flowchart LR
-  subgraph Classical front-end
-    X[Vibration windows] --> F[Time & FFT features\n1024 / stride 512]
-    F --> Z[Standardize]
-    Z --> E[Encoder: FC 16 ReLU FC 6]
-  end
-  subgraph Quantum core
-    E --> Q[VQC: AngleEmbed + SELayers\n6 qubits × 3 layers]
-    Q --> O["⟨Z⟩ readouts (6)"]
-  end
-  subgraph Classical head
-    O --> D[Decoder: FC 32 ReLU FC 1]
-    D --> RUL[RUL prediction]
-  end
-  subgraph Baseline
-    F2[Feature sequences] --> LSTM[2-layer LSTM 64]
-    LSTM --> RUL2[RUL prediction]
-  end
-```
+Accurate **remaining useful life (RUL)** prediction for rolling-element bearings is critical to condition-based maintenance — reducing unplanned downtime before it begins. This repository implements and benchmarks a **hybrid quantum-classical regressor** against a classical LSTM baseline on the [XJTU-SY](https://biaowang.tech/xjtu-sy-bearing-datasets/) run-to-failure dataset.
 
-**ASCII sketch**
+The hybrid model routes windowed vibration features through a **fully-connected encoder** → a **PennyLane variational quantum circuit (VQC)** → a **classical decoder**, all trained end-to-end. A depolarizing noise sweep probes circuit robustness under realistic quantum hardware conditions.
+
+---
+
+## Architecture
 
 ```
-Raw CSV (H/V acc) ──► preprocessing ──► sliding-window features ──┬──► scaler
-                                                                    ├──► LSTM baseline ──► RUL
-                                                                    └──► FC encoder ──► VQC ──► FC decoder ──► RUL
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        DATA INGESTION & FEATURES                        │
+│                                                                         │
+│   Raw CSVs (H / V acceleration)  ──►  Sliding window  ──►  Standardise │
+│   Window: 1024 samples │ Stride: 512 │ Features: Time-domain + FFT     │
+└──────────────────────┬──────────────────────────────┬───────────────────┘
+                       │                              │
+          ╔════════════▼═════════════╗     ╔══════════▼══════════╗
+          ║     HYBRID QML PATH      ║     ║  CLASSICAL BASELINE  ║
+          ╠══════════════════════════╣     ╠═════════════════════╣
+          ║                          ║     ║                      ║
+          ║  ┌──────────────────┐    ║     ║  ┌───────────────┐  ║
+          ║  │   FC Encoder     │    ║     ║  │ 2-layer LSTM  │  ║
+          ║  │  Linear(n → 16)  │    ║     ║  │  hidden = 64  │  ║
+          ║  │  ReLU            │    ║     ║  └──────┬────────┘  ║
+          ║  │  Linear(16 → 6)  │    ║     ║         │           ║
+          ║  └────────┬─────────┘    ║     ║  ┌──────▼────────┐  ║
+          ║           │              ║     ║  │ Linear(64→1)  │  ║
+          ║  ┌────────▼─────────┐    ║     ║  └──────┬────────┘  ║
+          ║  │  VQC — 6 qubits  │    ║     ╚═════════╪═══════════╝
+          ║  │  AngleEmbedding  │    ║               │
+          ║  │  StronglyEntangl │    ║               │
+          ║  │  3 layers        │    ║               │
+          ║  │  ⟨Z⟩ readouts    │    ║               │
+          ║  └────────┬─────────┘    ║               │
+          ║           │              ║               │
+          ║  ┌────────▼─────────┐    ║               │
+          ║  │   FC Decoder     │    ║               │
+          ║  │  Linear(6 → 32)  │    ║               │
+          ║  │  ReLU            │    ║               │
+          ║  │  Linear(32 → 1)  │    ║               │
+          ║  └────────┬─────────┘    ║               │
+          ╚═══════════╪══════════════╝               │
+                      │                              │
+                      └──────────────┬───────────────┘
+                                     ▼
+                          ┌────────────────────┐
+                          │    RUL ∈ [0, 1]    │
+                          │  (normalised,      │
+                          │   linear decay)    │
+                          └────────────────────┘
 ```
 
----
-
-## Installation
-
-**Requirements:** Python **3.10** (recommended), `git`, and enough disk/RAM to load XJTU-SY runs (~millions of samples per bearing).
-
-```bash
-python -m venv .venv
-# Windows: .venv\Scripts\activate
-# macOS/Linux: source .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-For **GPU-accelerated PyTorch**, reinstall `torch` from [pytorch.org](https://pytorch.org/get-started/locally/) for your CUDA build; the other pins are kept for reproducibility where possible.
-
-### Dataset layout
-
-Download the **XJTU-SY** bearing CSVs and place them so that **`Bearing1_1` … `Bearing1_5`** appear under your chosen root (nested folders such as `data/raw/XJTU-SY_Bearing_Datasets/35Hz12kN/` are fine). The loader searches for `Bearing1_1` under `--data_dir`.
-
-**Train / test split (default):** `Bearing1_1`–`Bearing1_4` → train, `Bearing1_5` → test.
+> **VQC details:** 6 qubits · AngleEmbedding · 3× StronglyEntanglingLayers · Pauli-Z readouts.  
+> Depolarizing noise can be injected at inference time for hardware-robustness studies.
 
 ---
 
-## End-to-end pipeline (`main.py`)
+## Results
 
-From the repository root, run:
+Evaluated on **Bearing1\_5** (held-out test bearing), normalised RUL ∈ [0, 1]:
 
-```bash
-python main.py --data_dir data/raw --mode all --epochs 50 --noise_level 0.0
-```
+| Model | MAE ↓ | RMSE ↓ | Δ MAE vs. LSTM |
+|:------|:-----:|:------:|:--------------:|
+| Classical LSTM (2-layer, hidden=64) | 0.2219 | 0.2892 | — |
+| **Hybrid VQC + FC (ours)** | **0.1986** | **0.2548** | **−10.5 %** |
 
-| Flag | Description |
-|------|-------------|
-| `--data_dir` | Root that contains (or parents) `Bearing1_*` folders |
-| `--mode` | `preprocess`, `train_classical`, `train_hybrid`, `evaluate`, or `all` |
-| `--epochs` | Training epochs for both models (default **50**) |
-| `--noise_level` | Depolarizing probability for hybrid **evaluation** (default **0.0**) |
-| `--max_train_windows` | Optional subsample cap for quick dry runs |
-| `--no_progress` | Disable `tqdm` training bars |
+The hybrid model achieves a **10.5% reduction in MAE** and **11.9% reduction in RMSE** over the classical baseline, demonstrating that variational quantum circuits can serve as competitive regression heads on real-world time-series health data.
 
-**Outputs (regenerated on each run):**
-
-- `data/processed/`: feature pickles, scaler, manifest  
-- `results/classical_lstm.pt`, `results/hybrid_model.pt`  
-- `results/metrics.json` (merged metrics)  
-- `results/figures/pipeline_classical_*.png`, `pipeline_hybrid_*.png`  
-- `results/classical_predictions_*.npz`, `results/hybrid_predictions_*.npz`
-
-**Approximate runtime (desktop CPU, full training windows, 50 epochs):** about **50–60 minutes** (feature extraction and hybrid steps dominate). Use `--max_train_windows` for faster experiments.
+> Exact numbers may vary slightly with hardware and library builds. Re-run `main.py` to reproduce.
 
 ---
 
-## Quickstart (clone → install → EDA)
-
-```bash
-git clone https://github.com/LisanHub/hybrid-qml-rul-bearing.git
-cd hybrid-qml-rul-bearing
-python -m pip install -r requirements.txt
-python -m jupyter lab notebooks/01_eda.ipynb
-```
-
-**Author:** [Zadid Al Lisan](https://github.com/LisanHub) · **GitHub:** [LisanHub](https://github.com/LisanHub).
-
----
-
-## Results (Bearing1_5, normalized RUL)
-
-Reported after `python main.py --data_dir data/raw --mode all --epochs 50 --noise_level 0.0` on this codebase (see `results/metrics.json`). *Exact numbers may vary slightly with hardware and PyTorch/PennyLane builds.*
-
-| Model | Test bearing | MAE ↓ | RMSE ↓ | Notes |
-|--------|----------------|-------|--------|--------|
-| Classical LSTM | Bearing1_5 | 0.2219 | 0.2892 | `train_classical` / `evaluate` |
-| Hybrid QML | Bearing1_5 | 0.1986 | 0.2548 | `noise_level=0.0` |
-
-For the four comparison figures (metrics table, RUL overlay, MAE/RMSE bars, hybrid noise panel), run all cells in `notebooks/05_results_comparison.ipynb` after `main.py` has produced `results/metrics.json` and the `*_predictions_Bearing1_5.npz` files, or regenerate the notebook source with `python scripts/build_05_notebook.py` and execute it.
-
-**Figure inventory**
-
-| File | Produced by | Notes |
-|------|-------------|--------|
-| `pipeline_classical_Bearing1_5.png` | `main.py` (`--mode` includes `evaluate`) | True vs predicted RUL (classical) |
-| `pipeline_hybrid_Bearing1_5.png` | `main.py` | Degradation-style plot for hybrid |
-| `table_metrics_comparison.png` | Notebook **05** | Needs `metrics.json` |
-| `rul_overlay_Bearing1_5.png` | Notebook **05** | Needs both NPZ prediction files |
-| `bar_mae_rmse_comparison.png` | Notebook **05** | Needs `metrics.json` |
-| `hybrid_noise_robustness.png` | Notebook **05** | **Curve** needs several `evaluate` runs at different `--noise_level` values (e.g. 0, 0.02, …, 0.1); with only one point, the notebook still saves a figure but annotates that the sweep is incomplete |
-| `vqc_diagram.png` | Optional | Call `save_vqc_diagram` in `src/quantum_circuit.py` if you want a circuit diagram in the repo |
-
-So: the **pipeline figures** are fully determined by `main.py`; the **comparison suite** is correct when notebook **05** is run with real inputs; the **noise robustness** figure is only a multi-point “sweep” after you log more than one noise level in `metrics.json`.
-
----
-
-## Repository structure
+## Repository Structure
 
 ```
 hybrid-qml-rul-bearing/
-├── .github/workflows/ci.yml  # import + compile checks
+├── .github/
+│   └── workflows/ci.yml               # Import & compile checks
+│
 ├── data/
-│   ├── raw/                    # XJTU-SY CSVs (gitignored except .gitkeep)
-│   └── processed/             # Cached features, scalers (gitignored)
+│   ├── raw/                           # XJTU-SY CSVs  (gitignored)
+│   └── processed/                     # Cached features & scalers (gitignored)
+│
 ├── notebooks/
-│   ├── 01_eda.ipynb
-│   ├── 02_preprocessing.ipynb
+│   ├── 01_eda.ipynb                   # Exploratory data analysis
+│   ├── 02_preprocessing.ipynb        # Feature engineering walkthrough
 │   ├── 03_classical_baseline.ipynb
 │   ├── 04_hybrid_qml_model.ipynb
-│   └── 05_results_comparison.ipynb
+│   └── 05_results_comparison.ipynb   # Publication figures
+│
 ├── scripts/
-│   └── build_05_notebook.py
+│   └── build_05_notebook.py          # Auto-generate notebook 05 source
+│
 ├── src/
-│   ├── preprocessing.py
-│   ├── features.py
-│   ├── classical_model.py
-│   ├── quantum_circuit.py
-│   └── hybrid_model.py
+│   ├── preprocessing.py              # CSV loading, windowing
+│   ├── features.py                   # Time-domain + FFT feature extraction
+│   ├── classical_model.py            # LSTM baseline
+│   ├── quantum_circuit.py            # PennyLane VQC definition
+│   └── hybrid_model.py               # End-to-end hybrid regressor
+│
 ├── results/
-│   ├── figures/               # Plots (gitignored; .gitkeep only)
-│   └── metrics.json           # Example merged metrics (tracked)
-├── main.py
+│   ├── figures/                      # Plots (gitignored; .gitkeep only)
+│   └── metrics.json                  # Example merged metrics (tracked)
+│
+├── main.py                           # End-to-end pipeline entry point
 ├── requirements.txt
 ├── CITATION.cff
 ├── LICENSE
 └── README.md
 ```
 
-Large artifacts (`*.pt`, `*.pkl`, raw CSVs, most figures) are **gitignored**; run `main.py` to regenerate them locally.
+> Large artefacts (`*.pt`, `*.pkl`, raw CSVs, most figures) are **gitignored** — run `main.py` to regenerate locally.
+
+---
+
+## Installation
+
+**Requirements:** Python 3.10 · `git` · ~4 GB RAM minimum for full bearing runs
+
+```bash
+# 1. Clone
+git clone https://github.com/LisanHub/hybrid-qml-rul-bearing.git
+cd hybrid-qml-rul-bearing
+
+# 2. Create virtual environment
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+
+# 3. Install dependencies
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+> **GPU (optional):** Reinstall `torch` from [pytorch.org](https://pytorch.org/get-started/locally/) for your CUDA build; remaining pins are kept for reproducibility.
+
+### Dataset Layout
+
+Download the **XJTU-SY** bearing CSVs and place them so `Bearing1_1` … `Bearing1_5` appear under your chosen root:
+
+```
+data/
+└── raw/
+    └── XJTU-SY_Bearing_Datasets/
+        └── 35Hz12kN/
+            ├── Bearing1_1/
+            ├── Bearing1_2/
+            ├── Bearing1_3/
+            ├── Bearing1_4/
+            └── Bearing1_5/        ← test bearing
+```
+
+The loader recursively searches for `Bearing1_*` under `--data_dir`.  
+**Default split:** `Bearing1_1` – `Bearing1_4` → train · `Bearing1_5` → test
+
+---
+
+## Usage
+
+### Full Pipeline
+
+```bash
+python main.py \
+  --data_dir  data/raw \
+  --mode      all \
+  --epochs    50 \
+  --noise_level 0.0
+```
+
+| Flag | Default | Description |
+|:-----|:-------:|:------------|
+| `--data_dir` | — | Root folder containing `Bearing1_*` subdirectories |
+| `--mode` | `all` | `preprocess` · `train_classical` · `train_hybrid` · `evaluate` · `all` |
+| `--epochs` | `50` | Training epochs (applies to both models) |
+| `--noise_level` | `0.0` | Depolarizing probability injected during hybrid evaluation |
+| `--max_train_windows` | — | Optional subsample cap for quick dry-runs |
+| `--no_progress` | — | Suppress `tqdm` progress bars |
+
+**Estimated runtime (desktop CPU, full windows, 50 epochs):** ~50–60 min  
+
+Quick smoke-test:
+
+```bash
+python main.py --data_dir data/raw --mode all --epochs 5 --max_train_windows 500
+```
+
+### Exploratory Analysis
+
+```bash
+python -m jupyter lab notebooks/01_eda.ipynb
+```
+
+### Reproducing Publication Figures
+
+After `main.py` has written `results/metrics.json` and the `*_predictions_Bearing1_5.npz` files:
+
+```bash
+# Option A — execute notebook directly
+jupyter nbconvert --to notebook --execute notebooks/05_results_comparison.ipynb
+
+# Option B — regenerate notebook source first, then execute
+python scripts/build_05_notebook.py
+jupyter nbconvert --to notebook --execute notebooks/05_results_comparison.ipynb
+```
+
+### Noise Robustness Sweep
+
+To reproduce the full multi-point noise curve:
+
+```bash
+for NOISE in 0.0 0.02 0.04 0.06 0.08 0.10; do
+  python main.py --data_dir data/raw --mode evaluate --noise_level $NOISE
+done
+```
+
+Then re-execute notebook **05** — `hybrid_noise_robustness.png` renders with the complete sweep.
+
+---
+
+## Output Artefacts
+
+| File | Produced by | Description |
+|:-----|:-----------:|:------------|
+| `data/processed/*.pkl` | `main.py` | Feature pickles, scaler, manifest |
+| `results/classical_lstm.pt` | `main.py` | Trained LSTM weights |
+| `results/hybrid_model.pt` | `main.py` | Trained hybrid model weights |
+| `results/metrics.json` | `main.py` | Merged evaluation metrics |
+| `results/figures/pipeline_classical_Bearing1_5.png` | `main.py` | True vs. predicted RUL — LSTM |
+| `results/figures/pipeline_hybrid_Bearing1_5.png` | `main.py` | Degradation plot — hybrid |
+| `results/figures/table_metrics_comparison.png` | Notebook 05 | Formatted metrics table |
+| `results/figures/rul_overlay_Bearing1_5.png` | Notebook 05 | Both models overlaid |
+| `results/figures/bar_mae_rmse_comparison.png` | Notebook 05 | MAE / RMSE bar chart |
+| `results/figures/hybrid_noise_robustness.png` | Notebook 05 | Noise sweep curve |
+| `results/figures/vqc_diagram.png` | `src/quantum_circuit.py` | Circuit diagram (optional) |
 
 ---
 
 ## Citation
 
-If you use this code or build on this thesis work, please cite it. GitHub surfaces [`CITATION.cff`](CITATION.cff) in the repository sidebar.
+If you use this code or build on this thesis work, please cite:
 
 ```bibtex
 @misc{lisan2026hybridqmlrulbearing,
-  title        = {Hybrid Quantum-Classical Regression for Remaining Useful Life Prediction of Rolling Bearings},
+  title        = {Hybrid Quantum-Classical Regression for Remaining Useful Life
+                  Prediction of Rolling Bearings},
   author       = {Lisan, Zadid Al},
   year         = {2026},
-  howpublished = {B.Sc.\ thesis, Daffodil International University, supervised by Dr.\ Md Alamgir Kabir},
+  howpublished = {B.Sc.\ thesis, Daffodil International University,
+                  supervised by Dr.\ Md Alamgir Kabir},
   url          = {https://github.com/LisanHub/hybrid-qml-rul-bearing}
 }
 ```
 
+GitHub also surfaces [`CITATION.cff`](CITATION.cff) in the repository sidebar for one-click export.
+
 ---
 
-## Contact & acknowledgements
+## Acknowledgements
 
-- **Dataset:** [XJTU-SY bearing datasets](https://biaowang.tech/xjtu-sy-bearing-datasets/) and related publications.  
-- **Supervisor:** Dr. Md Alamgir Kabir (Daffodil International University).  
-- **Contact:** [lisan15-5426@diu.edu.bd](mailto:lisan15-5426@diu.edu.bd) · GitHub [@LisanHub](https://github.com/LisanHub).  
-- Thanks to the **PyTorch**, **PennyLane**, **NumPy**, **pandas**, and **scikit-learn** communities.
+- **Dataset:** [XJTU-SY Bearing Datasets](https://biaowang.tech/xjtu-sy-bearing-datasets/) and related publications by Biao Wang et al.
+- **Supervisor:** Dr. Md Alamgir Kabir, Daffodil International University
+- **Libraries:** [PyTorch](https://pytorch.org) · [PennyLane](https://pennylane.ai) · [NumPy](https://numpy.org) · [pandas](https://pandas.pydata.org) · [scikit-learn](https://scikit-learn.org)
+- **Contact:** [lisan15-5426@diu.edu.bd](mailto:lisan15-5426@diu.edu.bd) · [@LisanHub](https://github.com/LisanHub)
+
+---
+
+<div align="center">
+
+Made with care at **Daffodil International University**, Dhaka, Bangladesh · 2026
+
+</div>
